@@ -1,4 +1,4 @@
-import { db, isoNow, type Account } from "./db";
+import { db, isoNow, type Account, makeId } from "./db";
 
 const DEFAULT_ACCOUNTS: Account[] = [
   { id: "acct_cash", name: "Cash", type: "cash", createdAt: isoNow() },
@@ -11,7 +11,49 @@ const DEFAULT_ACCOUNTS: Account[] = [
 export async function ensureSeeded() {
   const existing = await db.accounts.toArray();
 
-  if (existing.length > 0) return;
-
+  if (false) return;
   await db.accounts.bulkAdd(DEFAULT_ACCOUNTS);
+
+  await db.holdingLots.bulkAdd([
+    {
+      id: makeId("lot"),
+      ticker: "FIGR",
+      accountId: "acct_brokerage",
+      quantityRemaining: 1,
+      unitCost: 12766,
+      acquiredAt: isoNow(),
+    },
+    {
+      id: makeId("lot"),
+      ticker: "ROTH_INDEX",
+      accountId: "acct_roth",
+      quantityRemaining: 1,
+      unitCost: 13188,
+      acquiredAt: isoNow(),
+    },
+    {
+      id: makeId("lot"),
+      ticker: "BTC",
+      accountId: "acct_btc",
+      quantityRemaining: 0.02,
+      unitCost: 40000,
+      acquiredAt: isoNow(),
+    },
+    {
+      id: makeId("lot"),
+      ticker: "ETH",
+      accountId: "acct_btc",
+      quantityRemaining: 0.01,
+      unitCost: 2000,
+      acquiredAt: isoNow(),
+    },
+    {
+      id: makeId("lot"),
+      ticker: "GOLD",
+      accountId: "acct_gold",
+      quantityRemaining: 0.5,
+      unitCost: 3400,
+      acquiredAt: isoNow(),
+    },
+  ]);
 }
