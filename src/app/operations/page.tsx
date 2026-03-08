@@ -1,4 +1,4 @@
-"use client";
+ "use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -8,6 +8,7 @@ import { ensureSeeded } from "@/lib/seed";
 import { CATEGORY_OPTIONS } from "@/lib/categories";
 import { parseCommand, type ParsedCommand } from "@/lib/parser";
 import { getLatestPrice, refreshPricesOnceDaily } from "@/lib/prices";
+import { NavMenu } from "@/components/NavMenu";
 
 function money(n: number) {
   return n.toLocaleString(undefined, {
@@ -343,27 +344,9 @@ case "sell":
 
   return (
     <main className="min-h-screen bg-white text-black">
-      <div className="mx-auto max-w-3xl px-4 py-6 pb-28 sm:px-6">
-        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-          Operations
-        </h1>
-
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Link
-            className="rounded-xl border border-zinc-200 px-3 py-1.5 text-xs hover:bg-zinc-50"
-            href="/capital"
-          >
-            Capital
-          </Link>
-          <Link
-            className="rounded-xl border border-zinc-200 px-3 py-1.5 text-xs hover:bg-zinc-50"
-            href="/strategy"
-          >
-            Strategy
-          </Link>
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-2">
+      <NavMenu title="Operations" />
+      <div className="mx-auto max-w-3xl px-4 pb-28 pt-6 sm:px-6">
+        <div className="mt-1 flex flex-wrap gap-2">
           <button
             onClick={async () => {
               if (

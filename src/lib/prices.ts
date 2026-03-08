@@ -1,5 +1,39 @@
 // src/lib/prices.ts
+const MANUAL_PRICES: Record<string, number> = {
+  NPSNY: 10.62,
+};
 import { db, type PriceSnapshot } from "@/lib/db";
+
+const MANUAL_PRICE_STORAGE_KEY = "manual-price-overrides";
+
+export function getManualPriceOverrides(): Record<string, number> {
+  if (typeof window === "undefined") return {};
+
+  try {
+    const raw = localStorage.getItem(MANUAL_PRICE_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, number>;
+    return parsed ?? {};
+  } catch {
+    return {};
+  }
+}
+
+export function setManualPriceOverride(ticker: string, price: number) {
+  if (typeof window === "undefined") return;
+
+  const current = getManualPriceOverrides();
+  current[ticker.trim().toUpperCase()] = price;
+  localStorage.setItem(MANUAL_PRICE_STORAGE_KEY, JSON.stringify(current));
+}
+
+export function removeManualPriceOverride(ticker: string) {
+  if (typeof window === "undefined") return;
+
+  const current = getManualPriceOverrides();
+  delete current[ticker.trim().toUpperCase()];
+  localStorage.setItem(MANUAL_PRICE_STORAGE_KEY, JSON.stringify(current));
+}
 
 function todayISODateLocal() {
   const d = new Date();
@@ -19,8 +53,8 @@ async function fetchQuoteProxy(userTickers: string[]) {
   const url = `/api/quotes?symbols=${encodeURIComponent(userTickers.join(","))}`;
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(`Quote proxy failed (${res.status}) ${txt}`);
+    console.warn("Quote proxy returned non-OK status", res.status);
+    return {};
   }
   const json = await res.json();
   return (json?.prices ?? {}) as Record<string, number>; // USER ticker -> price
@@ -29,6 +63,12 @@ async function fetchQuoteProxy(userTickers: string[]) {
 export async function getLatestPrice(ticker: string): Promise<number | null> {
   const t = ticker.trim().toUpperCase();
 
+  const manualOverrides = getManualPriceOverrides();
+  const manual = manualOverrides[t];
+  if (typeof manual === "number") {
+    return manual;
+  }
+
   const snaps = await db.priceSnapshots
     .where("ticker")
     .equals(t)
@@ -36,15 +76,14 @@ export async function getLatestPrice(ticker: string): Promise<number | null> {
 
   if (!snaps.length) return null;
 
-  // pick newest by date (YYYY-MM-DD)
   let best = snaps[0];
+
   for (const s of snaps) {
     if (s.date > best.date) best = s;
   }
 
   return best.closePrice ?? null;
 }
-
 export async function refreshPricesOnceDaily(userTickersRaw: string[]) {
   const date = todayISODateLocal();
 

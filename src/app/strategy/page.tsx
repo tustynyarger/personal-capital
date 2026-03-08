@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, isoNow, monthKeyFromISO } from "@/lib/db";
+import { NavMenu } from "@/components/NavMenu";
 
 function money(n: number) {
   return n.toLocaleString(undefined, {
@@ -187,7 +188,7 @@ export default function StrategyPage() {
       .reduce((s, t) => s + t.amount, 0);
   }, [txs, rothAccount, thisYear]);
 
-  const rothLimit = 6500;
+  const rothLimit = 7500;
   const rothPct = Math.min(
     rothContributionsThisYear / (rothLimit || 1),
     1
@@ -220,20 +221,9 @@ export default function StrategyPage() {
 
   return (
     <main className="min-h-screen bg-white text-black">
-      <div className="mx-auto max-w-4xl px-4 py-6 pb-24 sm:px-6">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/operations"
-            className="rounded-xl border px-3 py-1.5 text-xs hover:bg-zinc-50"
-          >
-            Back to Operations
-          </Link>
-          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-            Strategy
-          </h1>
-        </div>
-
-        <section className="mt-6 rounded-2xl border">
+      <NavMenu title="Strategy" />
+      <div className="mx-auto max-w-4xl px-4 pb-24 pt-6 sm:px-6">
+        <section className="rounded-2xl border">
           <div className="px-4 py-3 text-sm font-medium border-b">
             Retirement Projection
           </div>

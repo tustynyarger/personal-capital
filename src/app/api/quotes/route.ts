@@ -26,33 +26,32 @@ async function fetchCoinGeckoUSD(ids: string[]) {
 }
 
 // -------- Stocks/ETFs (Alpha Vantage FREE endpoint) --------
-function latestDateKey(obj: Record<string, any>) {
-  const keys = Object.keys(obj);
-  keys.sort();
-  return keys[keys.length - 1];
+async function fetchStockPrice(symbol: string) {
+  const clean = symbol.replace(".", "-").toLowerCase();
+const stooqSymbol = `${clean}.us`;
+const url = `https://stooq.com/q/l/?s=${encodeURIComponent(stooqSymbol)}&f=sd2t2ohlcv&h&e=csv`;
+  const r = await fetch(url, {
+    cache: "no-store",
+    headers: {
+      "User-Agent": "Mozilla/5.0",
+      Accept: "text/csv,*/*",
+    },
+  });
+
+  if (!r.ok) return null;
+
+  const text = (await r.text()).trim();
+  const lines = text.split("\n");
+  if (lines.length < 2) return null;
+
+  const row = lines[1].split(",");
+  const close = Number(row[6]);
+
+  if (Number.isNaN(close)) return null;
+
+  return close;
 }
 
-async function fetchAlphaVantageDailyClose(symbol: string, apiKey: string) {
-  const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${encodeURIComponent(
-    symbol
-  )}&outputsize=compact&apikey=${encodeURIComponent(apiKey)}`;
-
-  const r = await fetch(url, { cache: "no-store" });
-  const json = await r.json().catch(() => ({}));
-
-  const note = json?.Note || json?.Information || json?.["Error Message"];
-  if (note) return { close: null as number | null, note: String(note) };
-
-  const ts = json?.["Time Series (Daily)"];
-  if (!ts) return { close: null as number | null, note: "No Time Series (Daily) in response" };
-
-  const d = latestDateKey(ts);
-  const closeRaw = ts?.[d]?.["4. close"];
-  const close = Number(closeRaw);
-  if (Number.isNaN(close)) return { close: null as number | null, note: "Close parse failed" };
-
-  return { close, note: null as string | null };
-}
 
 // -------- GOLD (Stooq historical latest close) --------
 async function fetchStooqLatestClose(symbol: string) {
@@ -83,13 +82,7 @@ async function fetchStooqLatestClose(symbol: string) {
 }
 
 export async function GET(req: Request) {
-  const apiKey = process.env.ALPHA_VANTAGE_API_KEY || "";
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "Missing ALPHA_VANTAGE_API_KEY in .env.local" },
-      { status: 500 }
-    );
-  }
+
 
   const { searchParams } = new URL(req.url);
   const symbolsParam = searchParams.get("symbols") || "";
@@ -116,9 +109,13 @@ export async function GET(req: Request) {
 
   // Equities/ETFs via Alpha Vantage (sequential = respects rate limits)
   for (const sym of Array.from(new Set(equities))) {
-    const r = await fetchAlphaVantageDailyClose(sym, apiKey);
-    if (typeof r.close === "number") prices[sym] = r.close;
-    else if (r.note) warnings[sym] = r.note;
+    const price = await fetchStockPrice(sym);
+  
+    if (typeof price === "number") {
+      prices[sym] = price;
+    } else {
+      warnings[sym] = "Stock price fetch failed";
+    }
   }
 
   // GOLD via Stooq (no key, avoids AV quota)

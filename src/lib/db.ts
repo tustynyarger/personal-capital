@@ -8,6 +8,15 @@ export interface Account {
   createdAt?: string;
 }
 
+export type Asset = {
+  id: string;
+  name: string;
+  category: string;
+  ticker?: string;
+  value?: number;
+  createdAt: string;
+};
+
 export interface Transaction {
   id: string;
   createdAt: string;
@@ -44,23 +53,35 @@ export interface WatchlistItem {
   createdAt: string;
 }
 
+export interface WealthHistory {
+  id?: number;
+  date: string; // YYYY-MM-DD
+  netWorth: number;
+}
+
 export class PCCDatabase extends Dexie {
   accounts!: Table<Account, string>;
   transactions!: Table<Transaction, string>;
   holdingLots!: Table<HoldingLot, string>;
   priceSnapshots!: Table<PriceSnapshot, number>;
   watchlist!: Table<WatchlistItem, string>;
+  wealth_history!: Table<WealthHistory, number>;
+  manual_prices!: Table<{ ticker: string; price: number}, string  >;
+  assets!: Table<Asset>;
 
   constructor() {
     super("pcc-db");
 
     // If you already had version(2), bumping to 3 ensures the new table exists.
-    this.version(3).stores({
+    this.version(4).stores({
       accounts: "id, name, type",
       transactions: "id, effectiveDate, accountId, type",
       holdingLots: "id, ticker, accountId",
       priceSnapshots: "++id, ticker, date",
       watchlist: "ticker",
+      wealth_history: "++id, date",
+      manual_prices: "ticker",
+      assets: "id,category"
     });
   }
 }
